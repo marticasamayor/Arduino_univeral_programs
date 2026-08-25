@@ -110,6 +110,10 @@ class MainWindow(QMainWindow):
             self.board_combo.addItem(board.label, board.id)
         self.board_combo.currentIndexChanged.connect(lambda _index: self._on_board_changed())
         outer.addWidget(self.board_combo)
+        self.board_datasheet_label = QLabel("")
+        self.board_datasheet_label.setOpenExternalLinks(True)
+        self.board_datasheet_label.setVisible(False)
+        outer.addWidget(self.board_datasheet_label)
         self.board_note_label = QLabel("")
         self.board_note_label.setWordWrap(True)
         self.board_note_label.setStyleSheet(
@@ -202,6 +206,10 @@ class MainWindow(QMainWindow):
         self.usb_radio.setEnabled(board.supports_native_usb)
         if not board.supports_native_usb:
             self.uart_radio.setChecked(True)
+        if hasattr(self, "board_datasheet_label"):
+            url = board.datasheet_url or ""
+            self.board_datasheet_label.setText(f'<a href="{url}">Datasheet</a>' if url else "")
+            self.board_datasheet_label.setVisible(bool(url))
         if hasattr(self, "board_note_label"):
             note = board.pre_flash_note or ""
             self.board_note_label.setText(note)

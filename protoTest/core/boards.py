@@ -12,6 +12,7 @@ class BoardDefinition:
     cdc_option_key: str | None = "CDCOnBoot"
     led_builtin_pin: int | None = None
     pre_flash_note: str | None = None
+    datasheet_url: str | None = None
 
     def fqbn_for(self, use_usb: bool) -> str:
         """FQBN complet, amb l'opcio CDCOnBoot afegida si la placa suporta USB natiu."""
@@ -29,30 +30,35 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=2,
+        datasheet_url="https://www.espressif.com/sites/default/files/documentation/esp32_datasheet_en.pdf",
     ),
     "esp32s2": BoardDefinition(
         id="esp32s2",
         label="ESP32-S2",
         fqbn="esp32:esp32:esp32s2",
         supports_native_usb=True,
+        datasheet_url="https://www.espressif.com/sites/default/files/documentation/esp32-s2_datasheet_en.pdf",
     ),
     "esp32s3": BoardDefinition(
         id="esp32s3",
         label="ESP32-S3",
         fqbn="esp32:esp32:esp32s3",
         supports_native_usb=True,
+        datasheet_url="https://www.espressif.com/sites/default/files/documentation/esp32-s3_datasheet_en.pdf",
     ),
     "esp32c3": BoardDefinition(
         id="esp32c3",
         label="ESP32-C3",
         fqbn="esp32:esp32:esp32c3",
         supports_native_usb=True,
+        datasheet_url="https://www.espressif.com/sites/default/files/documentation/esp32-c3_datasheet_en.pdf",
     ),
     "esp32c6": BoardDefinition(
         id="esp32c6",
         label="ESP32-C6",
         fqbn="esp32:esp32:esp32c6",
         supports_native_usb=True,
+        datasheet_url="https://www.espressif.com/sites/default/files/documentation/esp32-c6_datasheet_en.pdf",
     ),
     "uno": BoardDefinition(
         id="uno",
@@ -61,6 +67,7 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=13,
+        datasheet_url="https://docs.arduino.cc/resources/datasheets/A000066-datasheet.pdf",
     ),
     "mega": BoardDefinition(
         id="mega",
@@ -69,6 +76,7 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=13,
+        datasheet_url="https://docs.arduino.cc/resources/datasheets/A000067-datasheet.pdf",
     ),
     "nano": BoardDefinition(
         id="nano",
@@ -77,22 +85,7 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=13,
-    ),
-    "leonardo": BoardDefinition(
-        id="leonardo",
-        label="Arduino Leonardo",
-        fqbn="arduino:avr:leonardo",
-        supports_native_usb=False,
-        cdc_option_key=None,
-        led_builtin_pin=13,
-    ),
-    "micro": BoardDefinition(
-        id="micro",
-        label="Arduino Micro",
-        fqbn="arduino:avr:micro",
-        supports_native_usb=False,
-        cdc_option_key=None,
-        led_builtin_pin=13,
+        datasheet_url="https://docs.arduino.cc/resources/datasheets/A000005-datasheet.pdf",
     ),
     "uno_r4_minima": BoardDefinition(
         id="uno_r4_minima",
@@ -105,6 +98,7 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
             "Abans de Flashejar, posa la placa en mode bootloader pressionant dos cops "
             "seguits el boto RESET — aleshores el LED parpellejara de forma dinamica."
         ),
+        datasheet_url="https://docs.arduino.cc/resources/datasheets/ABX00080-datasheet.pdf",
     ),
     "uno_r4_wifi": BoardDefinition(
         id="uno_r4_wifi",
@@ -117,6 +111,7 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
             "Abans de Flashejar, posa la placa en mode bootloader pressionant dos cops "
             "seguits el boto RESET — aleshores el LED parpellejara de forma dinamica."
         ),
+        datasheet_url="https://docs.arduino.cc/resources/datasheets/ABX00087-datasheet.pdf",
     ),
     "sparkfun_pro_micro": BoardDefinition(
         id="sparkfun_pro_micro",
@@ -124,5 +119,6 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         fqbn="SparkFun:avr:promicro",
         supports_native_usb=False,
         cdc_option_key=None,
+        datasheet_url="https://learn.sparkfun.com/tutorials/pro-micro--fio-v3-hookup-guide",
     ),
 }
