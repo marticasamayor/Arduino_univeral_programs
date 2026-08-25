@@ -17,8 +17,9 @@
 #define enable_precharge_control   true
 #define enable_temination_control  true
 #define enable_charge              true
-#define watchdog_reset             true
+#define watchdog_reset             false
 #define enable_adc                 true
+#define enable_mppt                true
 
 
 

@@ -5,6 +5,7 @@
 #define BQ25756_I2C_ADDRESS                       0x6B
 
 
+// REGISTERS
 
 #define REG_CHARGE_VOLTAGE_LIMIT                  0x00    // Charge Voltage Limit
 #define REG_CHARGE_CURRENT_LIMIT                  0x02    // Charge Current Limit
@@ -52,11 +53,17 @@
 
 
 
+// BITS
+#define FORCE_SWEEP_1       7
+#define P_AND_O_TMR_2       5
+#define FULL_SWEEP_TMR_2    1
+#define EN_MPPT_1           0
 
 
 
 
 
+// MASK
 
 // Interrupt mask flags 1 for 0x28
 #define ADC_DONE_MASK   (1 << 7)
@@ -85,6 +92,14 @@
 
 
 
+
+
+
+
+
+
+
+// DEFINITIONS OF DIFERENTS STATS
 
 // VBATLowV
 #define VBAT_LOWV_30_PERCENT      0   // 30% x VFB_REG
@@ -116,6 +131,10 @@
 #define CHGTMR_HOURS_12           2   // 12 hours
 #define CHGTMR_HOURS_24           3   // 24 hours
 
+//FORCE_SWEEP
+#define FORCE_SWEET_NORMAL        0
+#define FORCE_SWEEP_START_FULL_SWEEP    1   // Start Full Panel Sweep (bit goes back to 0 after Full Panel Sweep complete)
+
 // P_AND_O_TMR
 #define P_AND_O_SECONDS_0         0   // 0 seconds
 #define P_AND_O_SECONDS_0_5       1   // 0.5 seconds
@@ -127,6 +146,10 @@
 #define FULL_SWEEP_MIN_10         1   // 10 minutes
 #define FULL_SWEEP_MIN_15         2   // 15 minutes
 #define FULL_SWEEP_MIN_20         3   // 20 minutes
+
+// ENABLE MPPT
+#define DISABLE_MPPT              0
+#define ENABLE_MPPT               1
 
 // REVERSEIBATLIMIT  (no es poden usar noms que comencin amb número)
 #define REVERSE_IBAT_20A          0   // 20A

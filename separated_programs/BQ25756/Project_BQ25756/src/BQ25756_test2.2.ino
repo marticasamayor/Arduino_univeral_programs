@@ -1,3 +1,11 @@
+// llibreries trovades
+// https://github.com/theohg/bq25756e_multiplatform
+// https://github.com/jacky4566/BQ25756_Driver_CPP/
+
+
+
+
+
 // FUNCIONS CORREGIDES PER BQ25756
 
 #include <Wire.h>
@@ -548,6 +556,14 @@ void loop() {
 
     if (dada == '6') {
       lecturaStatus();
+    }
+
+    if (dada == '7') {
+      setBitRegistre(REG_MPPT_CONTROL, EN_MPPT_1, enable_mppt);   // IAC_ADC_DIS = 0
+    }
+
+    if (dada == '8') {
+      setBitRegistre(REG_MPPT_CONTROL, FORCE_SWEEP_1, true);   // IAC_ADC_DIS = 0
     }
   }
 
