@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("protoTest — banc de proves ESP32")
-        self.setGeometry(100, 100, 1000, 750)
+        self.setGeometry(100, 100, 650, 750)
 
         self._state = "IDLE"
         self._port_snapshot: set[str] = set()
@@ -141,19 +141,16 @@ class MainWindow(QMainWindow):
 
     def _build_test_group(self) -> QGroupBox:
         group = QGroupBox("Test")
-        outer = QVBoxLayout(group)
+        row = QHBoxLayout(group)
 
-        combo_row = QHBoxLayout()
-        combo_row.addWidget(QLabel("Test:"))
+        row.addWidget(QLabel("Test:"))
         self.test_combo = QComboBox()
         for test in TEST_REGISTRY.values():
             self.test_combo.addItem(test.label, test.id)
         self.test_combo.currentIndexChanged.connect(self._on_test_combo_changed)
-        combo_row.addWidget(self.test_combo, 1)
-        outer.addLayout(combo_row)
+        row.addWidget(self.test_combo, 1)
 
         default_test_id = next(iter(TEST_REGISTRY))
-        radio_row = QHBoxLayout()
         self.test_radio_group = QButtonGroup(self)
         for test_id in BASIC_TEST_IDS:
             test = TEST_REGISTRY[test_id]
@@ -166,8 +163,7 @@ class MainWindow(QMainWindow):
                 lambda checked, tid=test.id: self._on_test_radio_toggled(tid) if checked else None
             )
             self.test_radio_group.addButton(radio)
-            radio_row.addWidget(radio)
-        outer.addLayout(radio_row)
+            row.addWidget(radio)
         return group
 
     def _build_port_group(self) -> QGroupBox:
