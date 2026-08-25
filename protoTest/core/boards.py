@@ -11,6 +11,7 @@ class BoardDefinition:
     supports_native_usb: bool
     cdc_option_key: str | None = "CDCOnBoot"
     led_builtin_pin: int | None = None
+    pre_flash_note: str | None = None
 
     def fqbn_for(self, use_usb: bool) -> str:
         """FQBN complet, amb l'opcio CDCOnBoot afegida si la placa suporta USB natiu."""
@@ -100,6 +101,10 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=13,
+        pre_flash_note=(
+            "Abans de Flashejar, posa la placa en mode bootloader pressionant dos cops "
+            "seguits el boto RESET — aleshores el LED parpellejara de forma dinamica."
+        ),
     ),
     "uno_r4_wifi": BoardDefinition(
         id="uno_r4_wifi",
@@ -108,6 +113,10 @@ BOARD_REGISTRY: dict[str, BoardDefinition] = {
         supports_native_usb=False,
         cdc_option_key=None,
         led_builtin_pin=13,
+        pre_flash_note=(
+            "Abans de Flashejar, posa la placa en mode bootloader pressionant dos cops "
+            "seguits el boto RESET — aleshores el LED parpellejara de forma dinamica."
+        ),
     ),
     "sparkfun_pro_micro": BoardDefinition(
         id="sparkfun_pro_micro",

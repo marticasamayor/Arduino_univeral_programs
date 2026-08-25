@@ -9,6 +9,7 @@ seleccionada (quan es coneix), ja que aquest pin no depen del cablejat de
 l'usuari sino nomes de la placa.
 """
 
+from PySide6.QtCore import Signal
 from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import QFormLayout, QLineEdit, QWidget
 
@@ -17,6 +18,8 @@ from core.tests_registry import TestDefinition
 
 
 class PinFieldsWidget(QWidget):
+    values_changed = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._layout = QFormLayout(self)
@@ -39,6 +42,7 @@ class PinFieldsWidget(QWidget):
             edit.setPlaceholderText(f"p.ex. {role.default}")
             if role.key == "LED_PIN" and board is not None and board.led_builtin_pin is not None:
                 edit.setText(str(board.led_builtin_pin))
+            edit.textChanged.connect(lambda _text: self.values_changed.emit())
             self._fields[role.key] = edit
             if role.kind == "pin":
                 self._pin_keys.add(role.key)

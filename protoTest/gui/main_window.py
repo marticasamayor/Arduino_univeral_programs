@@ -1,5 +1,6 @@
 """Finestra principal: orquestra generacio -> compilacio -> pujada -> monitor serial."""
 
+import shutil
 from pathlib import Path
 
 import serial.tools.list_ports
@@ -31,6 +32,8 @@ BUILD_ROOT = Path(__file__).resolve().parent.parent / "build"
 RECONNECT_POLL_MS = 300
 RECONNECT_TIMEOUT_MS = 8000
 
+BASIC_TEST_IDS = ("blink", "counter", "button")
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -43,6 +46,7 @@ class MainWindow(QMainWindow):
         self._reconnect_elapsed_ms = 0
         self._preferred_port: str | None = None
         self._stopping = False
+        self._last_compiled: dict | None = None
 
         self._setup_ui()
         self._setup_serial_worker()
@@ -52,7 +56,7 @@ class MainWindow(QMainWindow):
         self._reconnect_timer.setInterval(RECONNECT_POLL_MS)
         self._reconnect_timer.timeout.connect(self._poll_reconnect)
 
-        self._on_test_changed()
+        self._on_test_combo_changed(self.test_combo.currentIndex())
 
     # ---------- UI ----------
 
@@ -60,27 +64,34 @@ class MainWindow(QMainWindow):
         central = QWidget()
         layout = QVBoxLayout(central)
 
-        layout.addWidget(self._build_board_group())
-        layout.addWidget(self._build_uart_usb_group())
+        config_row = QHBoxLayout()
+        config_row.addWidget(self._build_board_group())
+        config_row.addWidget(self._build_uart_usb_group())
+        config_row.addWidget(self._build_port_group())
+        layout.addLayout(config_row)
+
         layout.addWidget(self._build_test_group())
 
         self.pin_fields = PinFieldsWidget()
+        self.pin_fields.values_changed.connect(self._invalidate_compiled)
         pin_group = QGroupBox("Pins")
         pin_layout = QVBoxLayout(pin_group)
         pin_layout.addWidget(self.pin_fields)
         layout.addWidget(pin_group)
 
-        layout.addWidget(self._build_port_group())
-
         run_row = QHBoxLayout()
         self.compile_burn_btn = QPushButton("Compilar i Flashejar")
         self.compile_burn_btn.clicked.connect(self._on_compile_burn_clicked)
+        self.flash_btn = QPushButton("Flashejar")
+        self.flash_btn.setEnabled(False)
+        self.flash_btn.clicked.connect(self._on_flash_clicked)
         self.stop_btn = QPushButton("Stop")
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self._on_stop_clicked)
         self.status_label = QLabel("Inactiu")
         self.status_label.setStyleSheet("padding: 5px; background-color: #eeeeee;")
         run_row.addWidget(self.compile_burn_btn)
+        run_row.addWidget(self.flash_btn)
         run_row.addWidget(self.stop_btn)
         run_row.addWidget(self.status_label, 1)
         layout.addLayout(run_row)
@@ -93,12 +104,19 @@ class MainWindow(QMainWindow):
 
     def _build_board_group(self) -> QGroupBox:
         group = QGroupBox("Microcontrolador")
-        row = QHBoxLayout(group)
+        outer = QVBoxLayout(group)
         self.board_combo = QComboBox()
         for board in BOARD_REGISTRY.values():
             self.board_combo.addItem(board.label, board.id)
         self.board_combo.currentIndexChanged.connect(lambda _index: self._on_board_changed())
-        row.addWidget(self.board_combo)
+        outer.addWidget(self.board_combo)
+        self.board_note_label = QLabel("")
+        self.board_note_label.setWordWrap(True)
+        self.board_note_label.setStyleSheet(
+            "color: #7a5b00; background-color: #fff3cd; padding: 4px; border-radius: 3px;"
+        )
+        self.board_note_label.setVisible(False)
+        outer.addWidget(self.board_note_label)
         return group
 
     def _build_uart_usb_group(self) -> QGroupBox:
@@ -112,22 +130,40 @@ class MainWindow(QMainWindow):
         self.uart_usb_group.addButton(self.usb_radio)
         row.addWidget(self.uart_radio)
         row.addWidget(self.usb_radio)
+        self.uart_radio.toggled.connect(lambda checked: self._invalidate_compiled() if checked else None)
+        self.usb_radio.toggled.connect(lambda checked: self._invalidate_compiled() if checked else None)
         self._on_board_changed()
         return group
 
     def _build_test_group(self) -> QGroupBox:
         group = QGroupBox("Test")
-        row = QHBoxLayout(group)
-        self.test_group = QButtonGroup(self)
-        for i, test in enumerate(TEST_REGISTRY.values()):
+        outer = QVBoxLayout(group)
+
+        combo_row = QHBoxLayout()
+        combo_row.addWidget(QLabel("Test:"))
+        self.test_combo = QComboBox()
+        for test in TEST_REGISTRY.values():
+            self.test_combo.addItem(test.label, test.id)
+        self.test_combo.currentIndexChanged.connect(self._on_test_combo_changed)
+        combo_row.addWidget(self.test_combo, 1)
+        outer.addLayout(combo_row)
+
+        default_test_id = next(iter(TEST_REGISTRY))
+        radio_row = QHBoxLayout()
+        self.test_radio_group = QButtonGroup(self)
+        for test_id in BASIC_TEST_IDS:
+            test = TEST_REGISTRY[test_id]
             radio = QRadioButton(test.label)
             radio.setToolTip(test.description)
             radio.setProperty("test_id", test.id)
-            if i == 0:
+            if test_id == default_test_id:
                 radio.setChecked(True)
-            radio.toggled.connect(lambda checked: self._on_test_changed() if checked else None)
-            self.test_group.addButton(radio)
-            row.addWidget(radio)
+            radio.toggled.connect(
+                lambda checked, tid=test.id: self._on_test_radio_toggled(tid) if checked else None
+            )
+            self.test_radio_group.addButton(radio)
+            radio_row.addWidget(radio)
+        outer.addLayout(radio_row)
         return group
 
     def _build_port_group(self) -> QGroupBox:
@@ -149,8 +185,7 @@ class MainWindow(QMainWindow):
         return BOARD_REGISTRY[board_id]
 
     def _selected_test(self) -> TestDefinition:
-        checked = self.test_group.checkedButton()
-        test_id = checked.property("test_id")
+        test_id = self.test_combo.currentData()
         return TEST_REGISTRY[test_id]
 
     def _refresh_ports(self) -> None:
@@ -167,11 +202,43 @@ class MainWindow(QMainWindow):
         self.usb_radio.setEnabled(board.supports_native_usb)
         if not board.supports_native_usb:
             self.uart_radio.setChecked(True)
+        if hasattr(self, "board_note_label"):
+            note = board.pre_flash_note or ""
+            self.board_note_label.setText(note)
+            self.board_note_label.setVisible(bool(note))
         if refresh_pins and hasattr(self, "pin_fields"):
             self.pin_fields.rebuild(self._selected_test(), board)
+            self._invalidate_compiled()
 
-    def _on_test_changed(self) -> None:
-        self.pin_fields.rebuild(self._selected_test(), self._selected_board())
+    def _on_test_combo_changed(self, index: int) -> None:
+        test_id = self.test_combo.itemData(index)
+        buttons = self.test_radio_group.buttons()
+        match = next((b for b in buttons if b.property("test_id") == test_id), None)
+        if match is not None:
+            if not match.isChecked():
+                match.setChecked(True)
+        else:
+            # Un grup exclusiu no permet desmarcar l'unic boto marcat via setChecked(False)
+            # (Qt el torna a marcar) -- cal desactivar l'exclusivitat temporalment.
+            self.test_radio_group.setExclusive(False)
+            for btn in buttons:
+                btn.setChecked(False)
+            self.test_radio_group.setExclusive(True)
+        self._invalidate_compiled()
+        if hasattr(self, "pin_fields"):
+            self.pin_fields.rebuild(self._selected_test(), self._selected_board())
+
+    def _on_test_radio_toggled(self, test_id: str) -> None:
+        idx = self.test_combo.findData(test_id)
+        if idx != -1 and idx != self.test_combo.currentIndex():
+            self.test_combo.setCurrentIndex(idx)
+
+    def _invalidate_compiled(self) -> None:
+        if self._last_compiled is not None:
+            shutil.rmtree(self._last_compiled["sketch_dir"], ignore_errors=True)
+            self._last_compiled = None
+        if hasattr(self, "flash_btn"):
+            self.flash_btn.setEnabled(False)
 
     # ---------- serial worker ----------
 
@@ -230,11 +297,13 @@ class MainWindow(QMainWindow):
         self.status_label.setStyleSheet(f"padding: 5px; background-color: {color};")
         busy = state in ("GENERATING", "COMPILING", "UPLOADING", "WAITING_FOR_PORT")
         self.compile_burn_btn.setEnabled(not busy)
+        self.flash_btn.setEnabled(not busy and self._last_compiled is not None)
         self.stop_btn.setEnabled(busy)
         self.board_combo.setEnabled(not busy)
         self.port_combo.setEnabled(not busy)
         self.pin_fields.setEnabled(not busy)
-        for btn in self.test_group.buttons():
+        self.test_combo.setEnabled(not busy)
+        for btn in self.test_radio_group.buttons():
             btn.setEnabled(not busy)
         if not busy:
             self._on_board_changed(refresh_pins=False)  # restaura uart/usb, sense refer els pins
@@ -301,8 +370,42 @@ class MainWindow(QMainWindow):
             self._set_state("ERROR")
             return
 
+        self._last_compiled = {
+            "test": self._pending_test,
+            "board": self._pending_board,
+            "fqbn": self._pending_fqbn,
+            "sketch_dir": self._pending_sketch_dir,
+        }
+        self.flash_btn.setEnabled(True)
+
         self._port_snapshot = port_utils.snapshot()
         self._preferred_port = self._pending_port
+
+        self._set_state("UPLOADING")
+        self.cli_runner.process_finished.connect(self._on_upload_finished)
+        self.cli_runner.run(upload_args(self._pending_fqbn, self._pending_port, self._pending_sketch_dir))
+
+    def _on_flash_clicked(self) -> None:
+        if self._last_compiled is None:
+            return
+        port = self.port_combo.currentText()
+
+        if not port:
+            QMessageBox.warning(self, "Falta port", "Selecciona un port COM")
+            return
+
+        if self.console.stop_monitor_btn.isEnabled():
+            self._stop_monitor()
+
+        self._stopping = False
+        self._pending_test = self._last_compiled["test"]
+        self._pending_board = self._last_compiled["board"]
+        self._pending_port = port
+        self._pending_sketch_dir = self._last_compiled["sketch_dir"]
+        self._pending_fqbn = self._last_compiled["fqbn"]
+
+        self._port_snapshot = port_utils.snapshot()
+        self._preferred_port = port
 
         self._set_state("UPLOADING")
         self.cli_runner.process_finished.connect(self._on_upload_finished)
@@ -352,4 +455,6 @@ class MainWindow(QMainWindow):
         self.serial_worker.disconnect_serial()
         self.worker_thread.quit()
         self.worker_thread.wait()
+        if self._last_compiled is not None:
+            shutil.rmtree(self._last_compiled["sketch_dir"], ignore_errors=True)
         event.accept()
